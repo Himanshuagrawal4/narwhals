@@ -15,6 +15,30 @@ to only explicitly write step 2.
 
 Let's explore this with some simple examples.
 
+## Creating a DataFrame from records
+
+Without an explicit schema, [`nw.from_dicts`][narwhals.from_dicts] delegates schema
+inference to the backend. For example, when a key first appears in the second
+record, pandas and Polars include it, but PyArrow infers columns from the first
+record and omits it.
+
+```python
+import narwhals as nw
+
+rows = [{"id": 1}, {"id": 2, "label": "second"}]
+for backend in ("pandas", "pyarrow", "polars"):
+    print(backend, nw.from_dicts(rows, backend=backend).columns)
+```
+
+To get the same columns and dtypes on all three backends, supply a schema. The
+first row will then have a missing value in the `label` column.
+
+```python
+schema = {"id": nw.Int64(), "label": nw.String()}
+frame = nw.from_dicts(rows, schema=schema, backend="pyarrow")
+assert frame.columns == ["id", "label"]
+```
+
 ## Example 1: descriptive statistics
 
 Just like in Polars, we can pass expressions to `DataFrame.select` or `LazyFrame.select`.
